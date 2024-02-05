@@ -88,10 +88,10 @@ class Graph:
         if vertex in self.vertices: # O(n)
             self.vertices.discard(vertex) # O(n)
             if vertex in self.edges: # O(n)
-                del self.edges[vertex] # O(n)
+                del self.edges[vertex] # O(n) -> doubly linked list maakt constant
             for edges in self.edges.values(): # n times O(n+n) so O(n^2)
                 if vertex in edges: # O(n)
-                    edges.remove(vertex) # O(n)
+                    edges.remove(vertex) # O(n) -> doubly linked list maakt constant
 
     # Goal: remove an edge between two vertices
     # Runningtime: O(n+n+n^2+n^2) = O(n^2) where n is the number of vertices
@@ -123,9 +123,11 @@ class Graph:
             del self.edges[key] #O(1)
             self.remove_vertex(key) #O(n^2+n)=O(n^2)
         
+    # Goal: write a tuple of verixes in order of their names
+    # Runningtime: O(1)
     def sort(self, v, w):
-        if v.name > w.name:
-            return (w, v)
+        if v.name > w.name: # O(1)
+            return (w, v) 
         else:
             return (v, w)
 
@@ -308,7 +310,7 @@ def findAugmentingPath(G, M):
                 edge = G.sort(v, e) # O(1)
                 if not marked[edge]: # O(n)
                     # pick an unmarked edge incident to v
-                    w = e # O(n)
+                    w = e # O(1) niet de nodigste regel
                     if w in forest.vertices: # O(n)
                         if distance(w, root(w))%2 == 1: # O(n)
                             # should never get here
@@ -329,7 +331,6 @@ def findAugmentingPath(G, M):
                         # w is matched, so add e and w matched edge to the forest
                         forest.add(v, w) # O(n)
                         # get the edge from M
-                        # print(M, v.name, w.name, "Matching", ", ".join(str(obj.name) for obj in M.vertices), " \n")
                         matchedVertex = M.edges[w][0] # O(n)
                         forest.add(w, matchedVertex) # O(n)
                 # mark e
