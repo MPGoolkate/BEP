@@ -1,5 +1,5 @@
 import unittest
-from edmonds_v2_1 import findMaxMatching, Graph, Vertex
+from edmonds_v2_2 import findMaxMatching, Graph, Vertex
 
 class Testing(unittest.TestCase):
 
@@ -14,7 +14,7 @@ class Testing(unittest.TestCase):
 
         M = Graph()
         res = findMaxMatching(G, M)
-        self.assertEqual(len(res.vertices)/2, 2)
+        self.assertEqual(res.vertices.len/2, 2)
 
     def test_normal_path2(self):
         G = Graph()
@@ -28,7 +28,7 @@ class Testing(unittest.TestCase):
         # ensure that a path inversion should occur
         M.add_edge(M.get_vertex(1), M.get_vertex(2))
         res2 = findMaxMatching(G, M)
-        self.assertEqual(len(res2.vertices)/2, 2)
+        self.assertEqual(res2.vertices.len/2, 2)
         
     
     def test_blossom_at_one_end(self):
@@ -44,7 +44,7 @@ class Testing(unittest.TestCase):
 
         M = Graph()
         res = findMaxMatching(G, M)
-        self.assertEqual(len(res.vertices)/2, 2)
+        self.assertEqual(res.vertices.len/2, 2)
 
     def test_blossom_at_one_end2(self):
         G = Graph()
@@ -59,7 +59,7 @@ class Testing(unittest.TestCase):
         # ensure that a blossom should occur
         M.add_edge(M.get_vertex(1), M.get_vertex(2))
         res2 = findMaxMatching(G, M)
-        self.assertEqual(len(res2.vertices)/2, 2)
+        self.assertEqual(res2.vertices.len/2, 2)
         print("finished test 2")
 
     def test_blossom_at_both_ends(self):
@@ -77,7 +77,7 @@ class Testing(unittest.TestCase):
 
         M = Graph()
         res = findMaxMatching(G, M)
-        self.assertEqual(len(res.vertices)/2, 3)
+        self.assertEqual(res.vertices.len/2, 3)
 
     def test_blossom_at_both_ends2(self):
         # ensure that a blossom should occur
@@ -98,7 +98,7 @@ class Testing(unittest.TestCase):
         M.add_vertex(G.get_vertex(1))
         M.add_edge(G.get_vertex(0), G.get_vertex(1))
         res2 = findMaxMatching(G, M)
-        self.assertEqual(len(res2.vertices)/2, 3)
+        self.assertEqual(res2.vertices.len/2, 3)
 
     def test_blossom_middle(self):
         G = Graph()
@@ -116,7 +116,7 @@ class Testing(unittest.TestCase):
 
         M = Graph()
         res = findMaxMatching(G, M)
-        self.assertEqual(len(res.vertices)/2, 4)
+        self.assertEqual(res.vertices.len/2, 4)
 
     def test_blossom_middle2(self):
         G = Graph()
@@ -146,7 +146,7 @@ class Testing(unittest.TestCase):
         M.add_edge(G.get_vertex(4), G.get_vertex(7))
         res2 = findMaxMatching(G, M)
         print("Matching", ", ".join(str(obj.name) for obj in res2.edges), " \n")
-        self.assertEqual(len(res2.vertices)/2, 4)
+        self.assertEqual(res2.vertices.len/2, 4)
 
     def test_recursion_blossom(self):
         G = Graph()
@@ -167,7 +167,7 @@ class Testing(unittest.TestCase):
     
         M = Graph()
         res = findMaxMatching(G, M)
-        self.assertEqual(len(res.vertices)/2, 5)
+        self.assertEqual(res.vertices.len/2, 5)
     
     def test_recursion_blossom2(self):
         G = Graph()
@@ -201,7 +201,7 @@ class Testing(unittest.TestCase):
         M.add_vertex(G.get_vertex(9))
         M.add_edge(G.get_vertex(6), G.get_vertex(9))
         res2 = findMaxMatching(G, M)
-        self.assertEqual(len(res2.vertices)/2, 5)
+        self.assertEqual(res2.vertices.len/2, 5)
 
 if __name__ == '__main__':
     unittest.main()
