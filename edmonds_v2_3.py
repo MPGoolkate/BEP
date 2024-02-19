@@ -16,6 +16,13 @@ class DoublyLinkedList:
             yield obj.vertex
             obj = obj.next
     
+    # O(n)
+    def copy(self):
+        new = DoublyLinkedList()
+        for vertex in self:
+            new.add(vertex)
+        return new
+    
     # O(1)
     def add(self, vertex):
         obj = Obj(vertex)
@@ -57,6 +64,10 @@ class DoublyLinkedList:
                 return obj
             obj = obj.next
         return None   
+    
+    # O(1)
+    def get_first(self):
+        return self.head
 
 
 class Tree:
@@ -82,9 +93,12 @@ class Forest:
                 break
 
         # Remove the tree w from the forest
-        self.trees.discard(w) # O(f) 
+        self.trees.discard(w) # O(f) <- gaat wrs fout
         # add it to the forest
-        self.vertices.add(w) # O(f)
+        if type(w) == Vertex:
+            self.vertices.add(w) # O(f)
+        else:
+            self.vertices.add(w.vertex)
 
 class Vertex:
     def __init__(self, name):
@@ -110,14 +124,14 @@ class Graph:
     def add_vertex(self, vertex):
         if not self.vertices.isIn(vertex): # O(n) -> should check if this is necessary because it makes the running time of this function higher
             self.vertices.add(vertex) # O(1)
-            self.edges[vertex] = [] # O(1)
+            self.edges[vertex] = DoublyLinkedList() # O(1)
 
     # Goal: add an edge between two vertices
     # Runningtime: O(n+n+n) = O(n) where n is the number of vertices in the graph
     def add_edge(self, vertex1, vertex2):
         if self.vertices.isIn(vertex1) and self.vertices.isIn(vertex2): # O(n) -> again might not be neccesary
-            self.edges[vertex1].append(vertex2) # O(n) -> doubly linked list in edges makes this constant
-            self.edges[vertex2].append(vertex1) # O(n) -> doubly linked list in edges makes this constant
+            self.edges[vertex1].add(vertex2) # O(n) 
+            self.edges[vertex2].add(vertex1) # O(n) 
 
     # Goal: get the neighbors of a vertex
     # Runningtime: O(n+n) = O(n) where n is the number of vertices in the graph
@@ -139,7 +153,7 @@ class Graph:
     # Runningtime: O(n+n+m) = O(m) where n is the number of vertices, and m the number of edges in the graph
     def get_edge(self, vertex1, vertex2):
         if self.vertices.isIn(vertex1) and self.vertices.isIn(vertex2): # O(n)
-            if vertex2 in self.edges[vertex1] and vertex1 in self.edges[vertex2]: #O(n+m)
+            if self.edges[vertex1].isIn(vertex2) and self.edges[vertex2].isIn(vertex1): #O(n+m)
                 return (vertex1, vertex2)
         return None
 
@@ -154,17 +168,17 @@ class Graph:
             if vertex in self.edges: # O(n) -> might not be neccesary
                 del self.edges[vertex] # O(n) -> doubly linked list in edges makes this constant
             for edges in self.edges.values(): # n times O(n+n) so O(n^2)
-                if vertex in edges: # O(n) -> might not be neccesary
-                    edges.remove(vertex) # O(n) -> doubly linked list makes constant
+                if edges.isIn(vertex): # O(n) -> might not be neccesary
+                    edges.remove(edges.retrieve(vertex)) # O(n) -> doubly linked list makes constant
 
     # Goal: remove an edge between two vertices
     # Runningtime: O(n+n+n^2+n^2) = O(n^2) where n is the number of vertices
     # becomes O(n) if doubly linked list is used
     def remove_edge(self, vertex1, vertex2):
         if self.vertices.isIn(vertex1) and self.vertices.isIn(vertex2): # O(n)
-            if vertex2 in self.edges[vertex1] and vertex1 in self.edges[vertex2]: #O(n)
-                self.edges[vertex1].remove(vertex2) #O(n^2) -> O(n) if we use a doubly linked list
-                self.edges[vertex2].remove(vertex1) #O(n^2) -> O(n) if we use a doubly linked list
+            if self.edges[vertex1].isIn(vertex2) and self.edges[vertex2].isIn(vertex1): #O(n)
+                self.edges[vertex1].remove(self.edges[vertex1].retrieve(vertex2)) #O(n^2) -> O(n) if we use a doubly linked list
+                self.edges[vertex2].remove(self.edges[vertex2].retrieve(vertex1)) #O(n^2) -> O(n) if we use a doubly linked list
     
     # Goal: contract an edge between two vertices
     # Runningtime: O(n^2+n^2+n^2+n+n^2) = O(n^2) where n is the number of vertices
@@ -181,7 +195,7 @@ class Graph:
         # remove any empty lists from the edges
         dels = []
         for key in self.edges: #O(n)
-            if self.edges[key] == []: #O(1)
+            if self.edges[key].head == None: #O(1)
                 dels.append(key) #O(1)
 
         for key in dels: #O(n)
@@ -283,7 +297,7 @@ def contract(G, M, blossom):
     for v in blossom.vertices[:-1]: # O(n) times (length of the blossom) so whole loop is O(n^3)
         G.contract_edge(base, v) # O(n^2)
         if v in M.vertices: # O(n)
-            M.contract_edge(base, v) # O(n^2)
+            M.contract_edge(base, v) # O(n^2) <- hier blijft nog een vertex over
 
     return G, M
 
@@ -306,7 +320,7 @@ def liftBlossom(G, M, blossom):
             connected_vert = neighbour # O(1)
             break
 
-    # get the blossom vertices in the right order (hier onder gaat nooit werken)
+    # get the blossom vertices in the right order 
     blossom_path = blossom.vertices[blossom.vertices.index(connected_vert):] + blossom.vertices[:blossom.vertices.index(connected_vert)] # O(n)
     
     # adapt the matching in the blossom starting from the connected vertex
@@ -341,6 +355,7 @@ def findMaxMatching(G, M):
     
 # Goal: find an augmenting path
 # Running time: worst case we have a recursion of O(n) times, a total of O(n^4)
+# becomes O(n^2 m) with improvements
 def findAugmentingPath(G, M):
     # create empty forest
     forest = Forest() # O(1)
@@ -365,6 +380,7 @@ def findAugmentingPath(G, M):
     # find an augmenting path
     # Running time: in the worst case we find a blossom in each iteration of the recursion,
     # Each recursion takes O(n^3) (always finding another blossom), for a total run time of O(n^4)
+    # becomes O(nm) with improvements
     while forest.vertices != set(): 
         v = forest.vertices.pop() # O(1)
         # pick an unmarked vertex in the forest
@@ -389,21 +405,21 @@ def findAugmentingPath(G, M):
                                 return augmentingPath(v, w) # O(n)
                             else:
                                 # found a blossom
-                                blossom = findBlossom(v, w, G, M) # O(n^2)
+                                blossom = findBlossom(v, w, G, M) # O(n^2) -> O(m) met verbetering
                                 G.blossoms.append(blossom) # O(1)
-                                G, M = contract(G, M, blossom) # O(n^3)
+                                G, M = contract(G, M, blossom) # O(n^3) -> O(m) met verbetering
                                 return findAugmentingPath(G, M) # recursion of max O(n) times
                                 #path = liftBlossom(G, M, blossom) # O(n^2)
                                 #return path
                     else:
-                        # w is matched, so add e and w matched edge to the forest
+                        # w is matched, so add w and w matched edge to the forest
                         forest.add(v, w) # O(n)
                         # get the edge from M
-                        matchedVertex = M.edges[w][0] # O(n)
+                        matchedVertex = M.edges[w].get_first().vertex # O(n)
                         forest.add(w, matchedVertex) # O(n)
                 # mark e
                 marked[edge] = True # O(1)
             # mark v
-            marked[v] = True # O(1)
+            #marked[v] = True # O(1)
     # no augmenting path found
     return None

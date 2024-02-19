@@ -91,6 +91,8 @@ class Vertex:
         self.name = name
         self.edges = set()
         self.parent = self
+        self.blossomRoot = self
+        self.blossomParent = self 
 
 class Blossom:
     def __init__(self):
@@ -341,7 +343,6 @@ def findMaxMatching(G, M):
     
 # Goal: find an augmenting path
 # Running time: worst case we have a recursion of O(n) times, a total of O(n^4)
-# becomes O(n^2 m) with improvements
 def findAugmentingPath(G, M):
     # create empty forest
     forest = Forest() # O(1)
@@ -366,7 +367,6 @@ def findAugmentingPath(G, M):
     # find an augmenting path
     # Running time: in the worst case we find a blossom in each iteration of the recursion,
     # Each recursion takes O(n^3) (always finding another blossom), for a total run time of O(n^4)
-    # becomes O(nm) with improvements
     while forest.vertices != set(): 
         v = forest.vertices.pop() # O(1)
         # pick an unmarked vertex in the forest
@@ -391,9 +391,9 @@ def findAugmentingPath(G, M):
                                 return augmentingPath(v, w) # O(n)
                             else:
                                 # found a blossom
-                                blossom = findBlossom(v, w, G, M) # O(n^2) -> O(m) met verbetering
+                                blossom = findBlossom(v, w, G, M) # O(n^2)
                                 G.blossoms.append(blossom) # O(1)
-                                G, M = contract(G, M, blossom) # O(n^3) -> O(m) met verbetering
+                                #G, M = contract(G, M, blossom) # O(n^3)
                                 return findAugmentingPath(G, M) # recursion of max O(n) times
                                 #path = liftBlossom(G, M, blossom) # O(n^2)
                                 #return path

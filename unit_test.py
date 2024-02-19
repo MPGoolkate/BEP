@@ -1,5 +1,5 @@
 import unittest
-from edmonds_v2_2 import findMaxMatching, Graph, Vertex
+from edmonds_v3_1 import findMaxMatching, Graph, Vertex
 
 class Testing(unittest.TestCase):
 
@@ -26,6 +26,9 @@ class Testing(unittest.TestCase):
         G.add_edge(G.get_vertex(1), G.get_vertex(2))
         G.add_edge(G.get_vertex(3), G.get_vertex(2))
         # ensure that a path inversion should occur
+
+        M.add_vertex(G.get_vertex(1))
+        M.add_vertex(G.get_vertex(2))
         M.add_edge(M.get_vertex(1), M.get_vertex(2))
         res2 = findMaxMatching(G, M)
         self.assertEqual(res2.vertices.len/2, 2)
@@ -57,6 +60,8 @@ class Testing(unittest.TestCase):
         G.add_edge(G.get_vertex(3), G.get_vertex(2))
 
         # ensure that a blossom should occur
+        M.add_vertex(G.get_vertex(1))
+        M.add_vertex(G.get_vertex(2))
         M.add_edge(M.get_vertex(1), M.get_vertex(2))
         res2 = findMaxMatching(G, M)
         self.assertEqual(res2.vertices.len/2, 2)
