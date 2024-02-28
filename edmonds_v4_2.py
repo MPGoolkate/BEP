@@ -36,15 +36,16 @@ class DoublyLinkedList:
         self.len += 1
     
     # O(1)
-    def add_obj(self, obj, length = 1): 
+    def add_list(self, list, length = 1): 
         if self.head == None:
-            self.head = obj
-            self.tail = obj
+            self.head = list.head
+            self.tail = list.tail
         else:
-            self.tail.next = obj
-            obj.prev = self.tail
-            self.tail = obj
+            self.tail.next = list.head
+            list.head.prev = self.tail
+            self.tail = list.tail
         self.len += length
+        
 
     # O(1)
     def remove(self, obj):
@@ -104,37 +105,32 @@ class DoublyLinkedList:
             new.add(obj.vertex) # O(1)
             obj = obj.next # O(1)
         return new
+    
+    # O(1)
+    def get_index(self, index):
+        obj = self.head
+        for i in range(index):
+            obj = obj.next
+        return obj.vertex
+    
+    # O(1)
+    def pop(self):
+        obj = self.head
+        self.head = obj.next
+        self.len -= 1
+        return obj.vertex
 
 class Tree:
     def __init__(self, root):
         self.root = root
         self.children = []
 
-class Forest:
-    def __init__(self):
-        self.trees = set()  # set of trees
-        self.vertices = set()
-
-    # Goal: add w as a child of v in the forest
-    # Runningtime: O(1+f+f+f) = O(f) where f is the number of trees in the forest
-    def add(self, v, w): 
-        # Set v as the parent of w
-        w.parent = v # O(1)
-
-        # Add w to the children of the tree containing v
-        for tree in self.trees: # we do f times O(1) making this O(f)
-            if tree.root == v:
-                tree.children.append(w) # O(1)
-                break
-
-        # Remove the tree w from the forest
-        self.trees.discard(w) # O(f) <- gaat wrs fout
-        # add it to the forest
-        if type(w) == Vertex:
-            self.vertices.add(w) # O(f)
-        else:
-            self.vertices.add(w.vertex)
-
+class ForestNode:
+    def __init__(self, depth=float("inf")):
+        self.depth = depth  # set of trees
+        self.parent = self
+        self.root = self
+    
 class Vertex:
     def __init__(self, name):
         self.name = name
@@ -174,16 +170,16 @@ class Graph:
     # might be able to move this to the construction of the blossom
     def get_neighbors(self, vertex):
         edges = DoublyLinkedList() # O(1)
-        edges.add_obj(self.edges[vertex.name].get_first(), self.edges[vertex.name].len) # O(1) TODO maak eingen functie die ook met de lengte dealt
-        # the root should also be added 
-        for vertexIter in edges: # O(n) times so O(n) in total
-            if vertexIter.blossomRoot != vertexIter: # O(1)
-                edges.add_first(vertexIter.blossomRoot) # O(1)
 
-        for child in vertex.blossomChildren: # O(n)
-            obj = self.edges[child.name].get_first() # O(1)
-            if obj != None: # O(1)
-                edges.add_obj(obj, self.edges[child.name].len) # O(1)
+        iteration = vertex.blossomChildren.copy() # O(n)
+        iteration.add(vertex)
+        for vertexIter in iteration: # O(n)
+            to_add = self.edges[vertexIter.name].copy() # O(n)
+            edges.add_list(to_add, to_add.len) # O(1)
+            # for neighbor in self.edges[vertexIter.name]:
+            #     if neighbor.blossomRoot != vertex: # O(1)
+            #         edges.add(neighbor.blossomRoot) # O(1)
+
         return edges
         
         
@@ -262,7 +258,7 @@ def root(v):
 # Goal: check if a vertex is exposed
 # running time: O(n) where n is the number of vertices in the graph
 def exposed(v, M):
-    if M.get_neighbors(v).get_first() != None: # O(n)
+    if M.get_neighbors(v).get_first() != None or v.blossomParent != v: # O(n)
         return False
     else:
         return True
@@ -280,26 +276,28 @@ def distance(v, w):
             return 1 + distance(v.parent, w)
         
 # Goal: create the augmenting path from the trees of v and w
-# Running time: O(d_1*n+d_2) where d_1 is the depth of the tree containing v and d_2 is the depth of the tree containing w
-# we note that d_1+d_2 is the length of the augmenting path. So a total running time of O(n^2)
+# Running time: O(d_1+d_2) where d_1 is the depth of the tree containing v and d_2 is the depth of the tree containing w
+# we note that d_1+d_2 is the length of the augmenting path. So a total running time of O(n)
 def augmentingPath(v, w):
-    path = [v, w] # O(1)
+    path = DoublyLinkedList()#O(1)
+    path.add(v) # O(1)
+    path.add(w) # O(1)
     while v != root(v): # O(d_1) where d_1 is the depth of the tree containing v
-        path.insert(0, v.parent) # O(n) (it needs to move all elements one step to the right) -> doubly linked list can do this in O(1)
+        path.add_first(v.parent) # O(1) (it needs to move all elements one step to the right) -> doubly linked list can do this in O(1)
         v = v.parent
     while w != root(w): # O(d_2) where d_2 is the depth of the tree containing w
-        path.append(w.parent) # O(1)
+        path.add(w.parent) # O(1)
         w = w.parent
     return path
 
 # Goal: invert the matching on a path
 # Running time: O(n^2)
 def invertPath(M, path):
-    for i in range(len(path)): #O(n) times so O(n^2) in total
-        if i % 2 == 0 and i < len(path) - 1: 
-            M.add_edge(path[i], path[i+1]) #O(1)
-        elif i<len(path)-1: # O(1) check length
-            M.remove_edge(path[i], path[i+1]) #O(n)
+    for i in range(path.len): #O(n) times so O(n^2) in total
+        if i % 2 == 0 and i < path.len - 1: 
+            M.add_edge(path.get_index(i) , path.get_index(i+1)) #O(n)
+        elif i<path.len-1: # O(1) check length
+            M.remove_edge(path.get_index(i), path.get_index(i+1)) #O(n+n+n)=O(n)
     return M #O(1)
 
 # Goal: find the blossom containing v and w
@@ -325,7 +323,7 @@ def relable(blossom, blossomRoot):
         vertex.blossomParent = blossomRoot # O(1)
         vertex.blossomRoot = blossomRoot # O(1)
         children = vertex.blossomChildren # O(1)
-        if children.get_first != None:
+        if children.get_first() != None:
             relable(children, blossomRoot) # O(n)
 
 # Goal: contract a blossom
@@ -337,9 +335,8 @@ def contract(M, blossom):
         vertex.blossomParent = newVertex # O(1)
         vertex.blossomRoot = newVertex.blossomRoot # O(1)
         children = vertex.blossomChildren # O(1)
-        if children.get_first != None:
+        if children.get_first() != None:
             relable(children, newVertex.blossomRoot) # o(b_1)
-
 
         if vertex != newVertex:
             newVertex.blossomChildren.add(vertex) # O(1)
@@ -347,9 +344,8 @@ def contract(M, blossom):
     # remove the matching within the blossom
     for vertex in blossom: # O(n) times (length of the blossom) so whole loop is O(n)
         match = M.edges[vertex.name].get_first() # O(1)
-        if match != None and blossom.isIn(match.vertex): # O(n)
+        if match != None and blossom.isIn(match.vertex): # O(n) -> becomes O(1)
             M.edges[vertex.name] = DoublyLinkedList() # O(1)    
-
 
     return M
     
@@ -359,11 +355,11 @@ def contract(M, blossom):
 # we get a blossm, graph and a matching, we need to alter the matching in accrodance with the blossom
 def liftBlossom(G, M, blossom):
     # first, we find the matched edge and unmatched edge that attach to the blossom
-    base = blossom.get_first() # O(1)
+    base = blossom.get_first().vertex.blossomRoot # O(1)
 
     # get the matched vertex that connects to the blossom (the stem of the blossom)
-    for neighbor in G.get_neighbors(base.vertex): # max O(n) times so O(n^2) in total
-        if not blossom.isIn(neighbor) and M.edges[neighbor.name].get_first() != None : # O(n) 
+    for neighbor in G.get_neighbors(base): # max O(n) times so O(n^2) in total
+        if not blossom.isIn(neighbor) and M.edges[neighbor.name].get_first() != None : # O(n) -> becomes O(1) with improvements
             stem = neighbor # O(1) 
             break
     
@@ -372,6 +368,11 @@ def liftBlossom(G, M, blossom):
         if blossom.isIn(neighbor): # O(n)
             connected_vert = neighbor # O(1)
             break
+
+    # update the matching between the blossom and the stem
+    if base != connected_vert:
+        M.remove_edge(stem, base) # O(n)
+        M.add_edge(stem, connected_vert) # O(1)
 
     # get the blossom vertices in the right order 
     blossom_path = blossom.reorder(connected_vert) #  O(n)
@@ -418,76 +419,50 @@ def findMaxMatching(G, M):
 # Running time: worst case we have a recursion of O(n) times, each taking O(n) time, a total of O(n^2)
 def findAugmentingPath(G, M):
     # create empty forest
-    forest = Forest() # O(1)
-    # update the markings of the edges
-    marked = {} # O(1)
-    for v in G.vertices: # total of O(n^2)
-        if v.blossomRoot != v:
-            continue # don't do it for the ghost vertices
-        for w in G.get_neighbors(v): # o(n)
-            if w.blossomRoot != w or v == w:
-                continue # don't do it for the ghost vertices
-            marked[G.sort(v,w)] = False  # O(1)
-    for v in M.vertices: # total of O(n^2)
-        if v.blossomRoot != v:
-            continue # don't do it for the ghost vertices
-        for w in M.get_neighbors(v): # O(n)
-            if w.blossomRoot != w or v == w:
-                continue # don't do it for the ghost vertices
-            marked[G.sort(v,w)] = True # O(1)
+    forest = [] # O(1)
+    queue = DoublyLinkedList() # O(1)
 
-    # create trees for all exposed vertices
-    for v in G.vertices: # runs O(n) times so total of O(n^2)
-        if v.blossomRoot != v:
-            continue # don't do it for the ghost vertices
-        if exposed(v, M): # O(n)
-            # v is exposed => add it to the forest
-            forest.trees.add(Tree(v))  # O(n)
-            forest.vertices.add(v) # O(n)
-            # undo any tree structure of previous runs
-            v.parent = v # O(1)
+    for v in G.vertices: # O(n) times so total of O(n^2)
+        if exposed(v, M): # O(n) wordt O(1)
+            forest.append(ForestNode(0)) # O(1)
+            queue.add(v) # O(1)
+        else:
+            forest.append(ForestNode()) # O(1)
     
     # find an augmenting path
     # Running time: in the worst case we find a blossom in each iteration of the recursion,
     # Each recursion takes O(n) (always finding another blossom), for a total run time of O(n^2)
-    while forest.vertices != set():  #This together with the for loop below loops past all edges
-        v = forest.vertices.pop() # O(1)
+    while queue.head != None:  #This together with the for loop below loops past all edges
+        v = queue.pop() # O(1)
+        v = v.blossomRoot # O(1)
 
-        # pick an unmarked vertex in the forest
-        if distance(v, root(v)) % 2 == 1: # O(n)
-            # do nothing
-            pass
-        else: 
-            # tree = forest.trees.pop()
-            # v = tree.root 
-            for e in G.get_neighbors(v):  # this together with the while forst creates a loop past all edges
-                if e.blossomRoot != e or v == e: #O(1)
-                    continue # don't do it for the ghost vertices
-                edge = G.sort(v, e) # O(1)
-                if not marked[edge]: # O(n)
-                    # pick an unmarked edge incident to v
-                    w = e # O(1) niet de nodigste regel
-                    if w in forest.vertices: # O(n)
-                        if distance(w, root(w))%2 == 1: # O(n)
-                            # should never get here
-                            pass 
-                        else:
-                            if root(v) != root(w): # O(n)
-                                # found an augmenting path
-                                return augmentingPath(v, w) # O(n)
-                            else:
-                                # found a blossom
-                                blossom = findBlossom(v, w, G, M) # O(n)
-                                G.blossoms.append(blossom) # O(1)
-                                M = contract( M, blossom) # O(n)
-                                return findAugmentingPath(G, M) # recursion of max O(n) times
+        neighbors = G.get_neighbors(v) # O(n)
+        for w in neighbors:
+            w = w.blossomRoot # O(1)
+            if forest[w.name].depth % 2 == 1 or forest[v.name].parent == forest[w.name]:
+                # do nothing
+                pass
+            else:
+                if forest[w.name].depth != float("inf") and forest[w.name].depth >= forest[v.name].depth:
+                    if forest[v.name].root != forest[w.name].root:
+                        # found an augmenting path
+                        return augmentingPath(v, w)
                     else:
-                        # w is matched, so add w and w matched edge to the forest
-                        forest.add(v, w) # O(n)
-                        # get the edge from M
-                        matchedVertex = M.get_neighbors(w).get_first().vertex # O(n)
-                        forest.add(w, matchedVertex) # O(n)
-                # mark the edge e
-                marked[edge] = True # O(1)
-    # no augmenting path found
+                        # found a blossom
+                        blossom = findBlossom(v, w, G, M)
+                        G.blossoms.append(blossom)
+                        M = contract(M, blossom)
+                        return findAugmentingPath(G, M)
+                else:
+                    # w is matched, so add w and w matched edge to the forest
+                    forest[w.name].depth = forest[v.name].depth + 1 # O(1)
+                    w.parent = v # O(1)
+                    forest[w.name].parent = forest[v.name] # O(1)
+                    forest[w.name].root = forest[v.name].root # O(1)
+                    matchedVertex = M.get_neighbors(w).get_first().vertex # O(n) with fix O(1)
+                    forest[matchedVertex.name].depth = forest[w.name].depth + 1 # O(1)
+                    forest[matchedVertex.name].parent = forest[w.name] # O(1)
+                    matchedVertex.parent = w # O(1)
+                    forest[matchedVertex.name].root = forest[w.name].root # O(1)  
+                    queue.add(matchedVertex) # O(1)
     return None

@@ -104,6 +104,13 @@ class DoublyLinkedList:
             new.add(obj.vertex) # O(1)
             obj = obj.next # O(1)
         return new
+    
+    # O(1)
+    def get_index(self, index):
+        obj = self.head
+        for i in range(index):
+            obj = obj.next
+        return obj.vertex
 
 class Tree:
     def __init__(self, root):
@@ -280,26 +287,28 @@ def distance(v, w):
             return 1 + distance(v.parent, w)
         
 # Goal: create the augmenting path from the trees of v and w
-# Running time: O(d_1*n+d_2) where d_1 is the depth of the tree containing v and d_2 is the depth of the tree containing w
-# we note that d_1+d_2 is the length of the augmenting path. So a total running time of O(n^2)
+# Running time: O(d_1+d_2) where d_1 is the depth of the tree containing v and d_2 is the depth of the tree containing w
+# we note that d_1+d_2 is the length of the augmenting path. So a total running time of O(n)
 def augmentingPath(v, w):
-    path = [v, w] # O(1)
+    path = DoublyLinkedList()#O(1)
+    path.add(v) # O(1)
+    path.add(w) # O(1)
     while v != root(v): # O(d_1) where d_1 is the depth of the tree containing v
-        path.insert(0, v.parent) # O(n) (it needs to move all elements one step to the right) -> doubly linked list can do this in O(1)
+        path.add_first(v.parent) # O(1) (it needs to move all elements one step to the right) -> doubly linked list can do this in O(1)
         v = v.parent
     while w != root(w): # O(d_2) where d_2 is the depth of the tree containing w
-        path.append(w.parent) # O(1)
+        path.add(w.parent) # O(1)
         w = w.parent
     return path
 
 # Goal: invert the matching on a path
 # Running time: O(n^2)
 def invertPath(M, path):
-    for i in range(len(path)): #O(n) times so O(n^2) in total
-        if i % 2 == 0 and i < len(path) - 1: 
-            M.add_edge(path[i], path[i+1]) #O(1)
-        elif i<len(path)-1: # O(1) check length
-            M.remove_edge(path[i], path[i+1]) #O(n)
+    for i in range(path.len): #O(n) times so O(n^2) in total
+        if i % 2 == 0 and i < path.len - 1: 
+            M.add_edge(path.get_index(i) , path.get_index(i+1)) #O(n)
+        elif i<path.len-1: # O(1) check length
+            M.remove_edge(path.get_index(i), path.get_index(i+1)) #O(n+n+n)=O(n)
     return M #O(1)
 
 # Goal: find the blossom containing v and w
@@ -469,7 +478,7 @@ def findAugmentingPath(G, M):
                     w = e # O(1) niet de nodigste regel
                     if w in forest.vertices: # O(n)
                         if distance(w, root(w))%2 == 1: # O(n)
-                            # should never get here
+                            # should never get here <- ?or cicle of even length?
                             pass 
                         else:
                             if root(v) != root(w): # O(n)
