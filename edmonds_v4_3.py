@@ -171,23 +171,16 @@ class Graph:
     # Goal: get the neighbors of a vertex
     # Runningtime: O(n) = O(n) where n is the number of vertices in the graph
     # might be able to move this to the construction of the blossom
-    def get_neighbors(self, vertex):
-        # if there is a blossom, we can use the blossom edges
-        if vertex.blossomRoot != vertex and vertex.blossomEdges.len > 0: # O(1)
-            return vertex.blossomEdges
-        
-        edges = DoublyLinkedList() # O(1)
-
-        iteration = vertex.blossomChildren.copy() # O(n)
-        iteration.add(vertex)
-        for vertexIter in iteration: # O(n)
-            to_add = self.edges[vertexIter.name].copy() # O(n)
-            edges.add_list(to_add, to_add.len) # O(1)
-            # for neighbor in self.edges[vertexIter.name]:
-            #     if neighbor.blossomRoot != vertex: # O(1)
-            #         edges.add(neighbor.blossomRoot) # O(1)
-
-        return edges
+    def get_neighbors(self, vertex, contracted = True):
+        # if we look in the uncontracted graph we simply return the edges
+        if not contracted: # O(1)
+            return self.edges[vertex.name] # O(1)
+        # if it's not part of a blossom we simple return its edges
+        if vertex == vertex.blossomRoot and vertex.blossomChildren.get_first() == None: # O(1)
+            return self.edges[vertex.name] # O(1))
+        else:
+            # else we return the edges of the blossom it is a part of 
+            return vertex.blossomRoot.blossomEdges # O(1)
         
         
     # Goal: get a vertex by name
@@ -249,10 +242,18 @@ class Graph:
     # Runningtime: O(n) where n is the number of vertices in the graph
     def count_matching(self):
         count = 0
-        for edges in self.edges:
-            if edges.head != None:
+        for edges in self.matching:
+            if edges != -1:
                 count += 1
         return count
+    
+    # Goal: check if a vertex is exposed
+    # running time: O(1) where n is the number of vertices in the graph
+    def exposed(self, v):
+        if self.matching[v.blossomRoot.name] == -1:
+            return True
+        else:
+            return False
 
 # Goal: find the root of a vertex
 # runnint time: O(n) as a tree may have n vertices
@@ -262,13 +263,7 @@ def root(v):
     else:
         return root(v.parent) # here is a recurison that runs O(d) where d is the depth of the tree
 
-# Goal: check if a vertex is exposed
-# running time: O(n) where n is the number of vertices in the graph
-def exposed(v, M):
-    if M.get_neighbors(v).get_first() != None or v.blossomParent != v: # O(n)
-        return False
-    else:
-        return True
+
 
 # Goal: find the distance between two vertices
 # running time: O(d) where d is the distance between the two vertices
@@ -299,36 +294,41 @@ def augmentingPath(v, w):
 
 # Goal: invert the matching on a path
 # Running time: O(n^2)
-def invertPath(M, path):
+def invertPath(G, path):
     for i in range(path.len-1): #O(n) times so O(n^2) in total
         if i % 2 == 0: 
-            M.add_edge(path.get_index(i) , path.get_index(i+1)) #O(n)
-        else: # 
-            M.remove_edge(path.get_index(i), path.get_index(i+1)) #O(n+n+n)=O(n)
-    return M #O(1)
+            G.matching[path.get_index(i).name] =  path.get_index(i+1) #O(1)
+            G.matching[path.get_index(i+1).name] =  path.get_index(i)
+        #else: # 
+            #M.remove_edge(path.get_index(i), path.get_index(i+1)) #O(n+n+n)=O(n)
+    return G #O(1)
+
 
 # Goal: add an alternative matching in the path 
 # Running time: O(n^2)
-def matchPath(M, path):
+def matchPath(G, path):
     # # adapt the matching in the blossom starting from the connected vertex
     v = path.get_first() # O(1)
     w = v.next
     i = 0
     while w != None: # O(n) times; so O(n^2) in total
-        if i % 2 == 0:
+        if i % 2 == 1:
             # we need the even edges to be unmatched
-            M.remove_edge_obj(v, w) #O(n)
-        else:
+            #M.remove_edge_obj(v, w) #O(n)
+            G.matching[v.vertex.name] = w.vertex #O(1)
+            G.matching[w.vertex.name] = v.vertex
+        #else:
             # we need to odd edges to be matched
-            M.add_edge(v.vertex, w.vertex) #O(1)
+            
+            #M.add_edge(v.vertex, w.vertex) #O(1)
         v = w
         w = w.next
         i += 1
-    return M
+    return G
 
 # Goal: find the blossom containing v and w
 # Running time: O(n) where n is the number of vertices in the graph
-def findBlossom(v, w, G, M):
+def findBlossom(v, w, G):
     blossom = DoublyLinkedList() # O(1)
     blossom.add(v) # O(1)
     blossom.add(w) # O(1)
@@ -354,7 +354,7 @@ def relable(blossom, blossomRoot):
 
 # Goal: contract a blossom
 # Running time: O(n) where n is the number of vertices in the graph
-def contract(M, blossom):
+def contract(G, blossom):
     # update the blossom tree of the nodes
     newVertex = blossom.get_first().vertex # O(1)
     for vertex in blossom: # O(b_2) times (length of the blossom), within we can iterate over all other blossoms so whole loop is O(n) 
@@ -368,90 +368,119 @@ def contract(M, blossom):
             newVertex.blossomChildren.add(vertex) # O(1)
     
     # remove the matching within the blossom
-    for vertex in blossom: # O(n) times (length of the blossom) so whole loop is O(n)
-        match = M.edges[vertex.name].get_first() # O(1)
-        if match != None and blossom.isIn(match.vertex): # O(n) -> becomes O(1)
-            M.edges[vertex.name] = DoublyLinkedList() # O(1)    
+    # for vertex in blossom: # O(n) times (length of the blossom) so whole loop is O(n)
+    #     match = G.edges[vertex.name].get_first() # O(1)
+    #     if match != None and blossom.isIn(match.vertex): # O(n) -> becomes O(1)
+    #         G.edges[vertex.name] = DoublyLinkedList() # O(1)    
 
-    return M
+    return G
     
 
 # Goal: lift a blossom
-# Running time: O(n^2)
+# Running time: O(m)
 # we get a blossm, graph and a matching, we need to alter the matching in accrodance with the blossom
-def liftBlossom(G, M, blossom):
+def liftBlossom(G, blossom):
     # first, we find the matched edge and unmatched edge that attach to the blossom
     contracted_vertex = blossom.get_first().vertex.blossomRoot # O(1)
 
     # get the matched vertex that connects to the blossom (the stem of the blossom)
-    for neighbor in G.get_neighbors(contracted_vertex): # max O(n) times so O(n^2) in total
-        if not blossom.isIn(neighbor) and M.edges[neighbor.name].get_first() != None : # O(n) 
+    for neighbor in G.get_neighbors(contracted_vertex): # max O(n) times so O(n) in total
+        if not neighbor.blossomRoot == contracted_vertex.blossomRoot and G.matching[neighbor.name] != -1: # O(1) 
             stem = neighbor # O(1) 
             break
     
     # get the vertex in the blossom that connects to the stem
-    for neighbor in G.get_neighbors(stem): # max O(n) times so O(n^2) in total
-        if blossom.isIn(neighbor): # O(n)
+    for neighbor in G.get_neighbors(stem, False): # max O(n) times so O(n) in total
+        if neighbor.blossomRoot == contracted_vertex.blossomRoot: # O(1)
             base = neighbor # O(1)
             break
 
     # update the matching between the blossom and the contracted vertex
     if contracted_vertex != base:
-        M.remove_edge(stem, contracted_vertex) # O(n)
-        M.add_edge(stem, base) # O(1)
+        #M.remove_edge(stem, contracted_vertex) # O(n)
+        G.matching[contracted_vertex.name] = -1 # O(1)
+        G.matching[stem.name] = base # O(1)
+        G.matching[base.name] = stem # O(1)
 
     # get the blossom vertices in the right order 
     blossom_path = blossom.reorder(base) #  O(n)
     
-    M = matchPath(M, blossom_path) # O(n^2)
+    G = matchPath(G, blossom_path) # O(m)
     
 
-    return M   
+    return G
+
+# Goal: update the neighbors of a blossom
+# Running time: O(m)
+def updateNeighbors(G, blossom):
+    # make a list to keep track
+    contracted_vertex = blossom.get_first().vertex.blossomRoot # O(1)
+
+    checked = []
+    for vertex in G.vertices: # O(n)
+        checked.append(float("inf")) # O(1)
+
+    updateV(G, contracted_vertex, contracted_vertex, 0, checked) # O(m)
+
+    for neighbor in contracted_vertex.blossomEdges:
+        obj = G.get_neighbors(neighbor, False).get_first() # O(1)
+        while obj != None: 
+            if obj.vertex.blossomRoot != contracted_vertex.blossomRoot:
+                neighbor.blossomEdges.remove(obj) # O(1)
+            obj = obj.next
+        neighbor.blossomEdges.add(contracted_vertex) # O(1)
+    
+def updateV(G, contracted_vertex, v, dist, checked):
+    #contracted_vertex.blossomEdges = G.get_neighbors(contracted_vertex).copy() # O(n)
+    # total of O(m) time
+    if checked[v.name] == float("inf"): # if not check before
+        if v.blossomRoot == contracted_vertex.blossomRoot: 
+            # v is in the blossom so check for its neighbors as well
+            checked[v.name] = 0 # O(1)
+            for neighbor in G.edges[v.name]: # O(n)
+                updateV(G, contracted_vertex, neighbor, 1, checked) # O(m)
+        else:
+            # v is not in the blossom so add it to the list
+            checked[v.name] = dist
+            contracted_vertex.blossomEdges.add(v) # O(1)
+
+    
+
 
 
 # Goal: find a maximum matching
 # running time: recusion O(n) times the running time of findAugmentingPath, which is O(n^2)
 # so the total running time is O(n^3)
-def findMaxMatching(G, M):
+def findMaxMatching(G):
     # try to find an augmenting path
     
-    path = findAugmentingPath(G, M) # O(n^2)
-    if path == None: # O(1)
+    path, bool = findAugmentingPath(G) # O(n^2)
+    if bool == True: # O(1)
+        # we found a blossom
+        # we update the neighbors of the blossom
+        updateNeighbors(G, path) # O(m)
+        return findMaxMatching(G) # recursion of max O(n) times
+    elif path == None: # O(1)
         # no augmenting path found => M is a maximum matching
         for blossom in G.blossoms: # doen we max O(n) keer; dus O(n^3) in totaal. 
             if blossom.head != None:
-                M = liftBlossom(G, M, blossom) # functie is O(n^2)
-        return M # O(1)
+                G = liftBlossom(G, blossom) # functie is O(n^2)
+        return G # O(1)
     else:
         # invert the path to increase the matching
-        M = invertPath(M, path) # O(n^2)
+        G = invertPath(G, path) # O(n^2)
         # recurse to find another augmenting path
-        return findMaxMatching(G, M) # recursion of max O(n) times
+        return findMaxMatching(G) # recursion of max O(n) times
     
 # Goal: find an augmenting path
 # Running time: worst case we have a recursion of O(n) times, each taking O(n) time, a total of O(n^2)
-def findAugmentingPath(G, M):
+def findAugmentingPath(G):
     # create empty forest
     forest = [] # O(1)
     queue = DoublyLinkedList() # O(1)
 
-    # clean up the blossom edges in the last made blossom
-    if len(G.blossoms) > 1: 
-        blossom = G.blossoms[-1] 
-    else:
-        blossom =  None
-    if blossom != None: # O(n) times so O(n^2) in total
-        contracted_vertex = blossom.get_first().vertex.blossomRoot # O(1)
-        contracted_vertex.blossomEdges = G.get_neighbors(contracted_vertex).copy() # O(n)
-        for v in contracted_vertex.blossomEdges:
-            for w in contracted_vertex.blossomEdges:
-                if v == w:
-                    pass
-                elif v.name == w.name or w.name == contracted_vertex.name:
-                    contracted_vertex.blossomEdges.remove(w) # O(1)
-
     for v in G.vertices: # O(n) times so total of O(n^2)
-        if exposed(v, M): # O(n) wordt O(1)
+        if G.exposed(v): # O(n) wordt O(1)
             forest.append(ForestNode(0)) # O(1)
             queue.add(v) # O(1)
         else:
@@ -474,23 +503,23 @@ def findAugmentingPath(G, M):
                 if forest[w.name].depth != float("inf"): # and forest[w.name].depth >= forest[v.name].depth:
                     if forest[v.name].root != forest[w.name].root:
                         # found an augmenting path
-                        return augmentingPath(v, w)
+                        return augmentingPath(v, w), False
                     else:
                         # found a blossom
-                        blossom = findBlossom(v, w, G, M)
+                        blossom = findBlossom(v, w, G)
                         G.blossoms.append(blossom)
-                        M = contract(M, blossom)
-                        return findAugmentingPath(G, M)
+                        G = contract(G, blossom)
+                        return blossom, True
                 else:
                     # w is matched, so add w and w matched edge to the forest
                     forest[w.name].depth = forest[v.name].depth + 1 # O(1)
                     w.parent = v # O(1)
                     forest[w.name].parent = forest[v.name] # O(1)
                     forest[w.name].root = forest[v.name].root # O(1)
-                    matchedVertex = M.get_neighbors(w).get_first().vertex # O(n) with fix O(1)
+                    matchedVertex = G.matching[w.name].blossomRoot # O(1)
                     forest[matchedVertex.name].depth = forest[w.name].depth + 1 # O(1)
                     forest[matchedVertex.name].parent = forest[w.name] # O(1)
                     matchedVertex.parent = w # O(1)
                     forest[matchedVertex.name].root = forest[w.name].root # O(1)  
                     queue.add(matchedVertex) # O(1)
-    return None
+    return None, False

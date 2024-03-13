@@ -188,9 +188,6 @@ class Graph:
             while v != None: # O(n)
                 if v.vertex.blossomRoot != v.vertex:
                     edges.remove(v) # O(1)
-                    if not addedRoot: # O(1)
-                        edges.add(v.vertex) # O(1)
-                        addedRoot = True # O(1)
                 elif v.vertex.blossomRoot != v.vertex and addedRoot: # O(1)
                     edges.remove(v) # O(1)
                 v = v.next
@@ -391,7 +388,12 @@ def contract(G, blossom, tree):
             G.matching[vertex.name] = -1 # O(1)  
 
     neighbors = DoublyLinkedList()
-    newVertex.blossomEdges = blossom_neighbors(newVertex.blossomRoot, tree, neighbors) # O(n)
+    newVertex.blossomEdges = blossom_neighbors(newVertex, newVertex, neighbors) # O(n)
+    for neighbor in G.edges[newVertex.name]: # max O(n) times so O(1) in total
+        if not neighbor.blossomRoot == newVertex.blossomRoot: # O(1) 
+            stem = neighbor # O(1) 
+            if stem != tree and stem != None: # O(1)
+                neighbors.add(stem) # O(1)
 
     return G
 
@@ -402,7 +404,9 @@ def blossom_neighbors(vertex, tree, neighbors):
         neighbors.add(vertex.blossomRoot) # O(1)
 
     for child in vertex.ghostChildren:
-        neighbors = blossom_neighbors(child, tree, neighbors) #
+        neighbors = blossom_neighbors(child, tree, neighbors) 
+
+    
     return neighbors
     
 
@@ -415,7 +419,7 @@ def liftBlossom(G, blossom):
 
     # get the matched vertex that connects to the blossom (the stem of the blossom)
     for neighbor in G.get_neighbors(contracted_vertex): # max O(n) times so O(n^2) in total
-        if not blossom.isIn(neighbor) and G.matching[neighbor.name] != -1: # O(n) 
+        if not neighbor.blossomRoot == contracted_vertex.blossomRoot and G.matching[neighbor.name] != -1: # O(n) 
             stem = neighbor # O(1) 
             break
     
