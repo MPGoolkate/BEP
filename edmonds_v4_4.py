@@ -313,17 +313,21 @@ def invertPath(G, path):
 # Running time: O(n) where n is the number of vertices in the graph
 def findBlossom(v, w):
     blossom = DoublyLinkedList() # O(1)
-    blossom.add(v) # O(1)
-    blossom.add(w) # O(1)
-    while v.parent != w.parent: # O(n) time (lenght of the blossom) so whole loop is #O(n^2)
-        if v.parent != v:
-            v = v.parent # O(1)
+    # blossom.add(v) # O(1)
+    # blossom.add(w) # O(1)
+    if w.parent.parent == v:
+        blossom.add(v) # O(1)
+        blossom.add(w)
+        blossom.add(w.parent)
+    else:
+        while v != w: # O(n) time (lenght of the blossom) so whole loop is #O(n^2)
             blossom.add_first(v) # O(1)
-        if w.parent != w:
-            w = w.parent # O(1)
+            v = v.parent # O(1)
             blossom.add(w) # O(1)
-    if v.parent != v and w.parent != w: # O(1)
-        blossom.add(v.parent) # O(1)
+            w = w.parent # O(1)
+        blossom.add_first(v) # O(1)	
+            
+
     
     return blossom
 
@@ -366,7 +370,7 @@ def liftBlossom(G, blossom):
             break
 
     for vertex in blossom:
-        for neighbor in G.get_neighbors(vertex):
+        for neighbor in G.get_neighbors(vertex, False):
             if neighbor == stem:
                 base = vertex
                 break
@@ -434,12 +438,12 @@ def findMaxMatching(G):
         # we found a blossom
         # we update the neighbors of the blossom
         G = updateNeighbors(G, path) # O(m)
-        return findMaxMatching(G) # recursion of max O(n) times
+        G = findMaxMatching(G) # recursion of max O(n) times
+        # after the max matching has been found, we lift the blossom
+        G = liftBlossom(G, path) # O(m)
+        return G # recursion of max O(n) times
     elif path == None: # O(1)
         # no augmenting path found => M is a maximum matching
-        for blossom in G.blossoms: # doen we max O(n) keer; dus O(n^3) in totaal. 
-            if blossom.head != None:
-                G = liftBlossom(G, blossom) # functie is O(n^2)
         return G # O(1)
     else:
         # invert the path to increase the matching

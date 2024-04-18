@@ -1,5 +1,5 @@
 import unittest
-from edmonds_v4_3 import findMaxMatching, Graph, Vertex
+from edmonds_v4_4 import findMaxMatching, Graph, Vertex
 
 class Testing(unittest.TestCase):
 
@@ -179,6 +179,26 @@ class Testing(unittest.TestCase):
                        G.get_vertex(9), G.get_vertex(8), G.get_vertex(7), G.get_vertex(6)]
         res2 = findMaxMatching(G)
         self.assertEqual(res2.count_matching()/2, 5)
+    
+    def test_big_blossom(self):
+        G = Graph()
+        for i in range(10):
+            G.add_vertex(Vertex(i))
+
+        G.add_edge(G.get_vertex(0), G.get_vertex(1))
+        G.add_edge(G.get_vertex(1), G.get_vertex(2))
+        G.add_edge(G.get_vertex(2), G.get_vertex(3))
+        G.add_edge(G.get_vertex(3), G.get_vertex(4))
+        G.add_edge(G.get_vertex(4), G.get_vertex(0))
+        G.add_edge(G.get_vertex(3), G.get_vertex(5))
+        G.add_edge(G.get_vertex(5), G.get_vertex(6))
+        G.add_edge(G.get_vertex(6), G.get_vertex(7))
+        G.add_edge(G.get_vertex(2), G.get_vertex(8))
+        G.add_edge(G.get_vertex(8), G.get_vertex(9))
+        G.add_edge(G.get_vertex(9), G.get_vertex(0))
+
+        res = findMaxMatching(G)
+        self.assertEqual(res.count_matching()/2, 5)
 
 if __name__ == '__main__':
     unittest.main()
