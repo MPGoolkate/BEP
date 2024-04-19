@@ -342,17 +342,18 @@ def findBlossom(v, w):
     blossom = DoublyLinkedList() # O(1)
     # blossom.add(v) # O(1)
     # blossom.add(w) # O(1)
-    if w.parent.parent == v:
-        blossom.add(v) # O(1)
-        blossom.add(w)
-        blossom.add(w.parent)
-    else:
-        while v != w: # O(n) time (lenght of the blossom) so whole loop is #O(n^2)
-            blossom.add_first(v) # O(1)
-            v = v.parent # O(1)
-            blossom.add(w) # O(1)
-            w = w.parent # O(1)
-        blossom.add_first(v) # O(1)	
+    
+    # blossom.add(v) # O(1)
+    blossom.add(w)
+    blossom.add(w.parent)
+    w = w.parent.parent
+
+    while v != w: # O(n) time (lenght of the blossom) so whole loop is #O(n^2)
+        blossom.add_first(v) # O(1)
+        v = v.parent # O(1)
+        blossom.add(w) # O(1)
+        w = w.parent # O(1)
+    blossom.add_first(v) # O(1)	
             
 
     
@@ -432,7 +433,7 @@ def updateNeighbors(G, blossom):
         checked.append(False) # O(1)
 
     empty = DoublyLinkedList() # O(1)
-    G = updateV(G, blossom_repr, blossom_repr, checked, empty) # O(m)
+    empty = updateV(G, blossom_repr, blossom_repr, checked, empty) # O(m)
     blossom_repr.blossomEdges.add(empty) # O(1)
 
     for neighbor in blossom_repr.blossomEdges.get_last_list():
@@ -453,12 +454,12 @@ def updateV(G, blossom_repr, v, checked, empty):
         checked[v.name] = True
         if v.blossomRoot == blossom_repr.blossomRoot: 
             # v is in the blossom so check for its neighbors as well
-            for neighbor in G.edges[v.name]: # O(n)
+            for neighbor in G.get_neighbors(v):# edges[v.name]: # O(n)
                 G = updateV(G, blossom_repr, neighbor, checked, empty) # O(m)
         else:
             # v is not in the blossom so add it to the list
             empty.add(v) # O(1)
-    return G
+    return empty
 
     
 
